@@ -3,6 +3,7 @@ dist/
 build/
 .next/
 *.log
+*.tsbuildinfo
 .env
 .env.local
 media/uploads/*
