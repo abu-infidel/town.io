@@ -1,0 +1,30 @@
+{
+  "name": "mahalle",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Local town social platform (Persian) - monorepo root",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "dev:api": "npm run dev --workspace=@mahalle/api",
+    "dev:web": "npm run dev --workspace=@mahalle/web",
+    "dev:worker": "npm run dev:worker --workspace=@mahalle/api",
+    "prisma:generate": "npm run prisma:generate --workspace=@mahalle/api"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "allowScripts": {
+    "@prisma/client@5.22.0": true,
+    "@prisma/engines@5.22.0": true,
+    "esbuild@0.28.2": true,
+    "msgpackr-extract@3.0.4": true,
+    "prisma@5.22.0": true,
+    "sharp@0.33.5": true,
+    "unrs-resolver@1.12.2": true
+  }
+}

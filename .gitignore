@@ -1,0 +1,12 @@
+node_modules/
+dist/
+build/
+.next/
+*.log
+.env
+.env.local
+media/uploads/*
+media/processed/*
+!media/uploads/.gitkeep
+!media/processed/.gitkeep
+.DS_Store

@@ -1,0 +1,45 @@
+{
+	# Automatic HTTPS via Let's Encrypt for the real domain.
+	email admin@{$PUBLIC_DOMAIN}
+}
+
+{$PUBLIC_DOMAIN} {
+	encode gzip
+
+	# Known AI-training crawlers get sent to robots-blocked-only content.
+	# (Defense in depth alongside robots.txt - see req 14 in the architecture plan.
+	# This is a soft measure: a determined scraper can spoof User-Agent, so the
+	# real protections are the auth wall + rate limiting below, not this line.)
+	@ai_bots {
+		header User-Agent *GPTBot*
+		header User-Agent *CCBot*
+		header User-Agent *ClaudeBot*
+		header User-Agent *anthropic-ai*
+		header User-Agent *Google-Extended*
+		header User-Agent *Bytespider*
+		header User-Agent *Amazonbot*
+	}
+	respond @ai_bots 403
+
+	# Processed media, served from its own path with no cookies forwarded.
+	handle /media/* {
+		root * /srv/media
+		uri strip_prefix /media
+		file_server
+		header -Cookie
+		header Cache-Control "public, max-age=31536000, immutable"
+	}
+
+	# Core API
+	handle /api/* {
+		uri strip_prefix /api
+		# Basic connection-level rate limiting; per-account/per-route limits are
+		# enforced in the Express app itself (see packages/api/src/middleware/rateLimit.ts).
+		reverse_proxy api:4000
+	}
+
+	# Everything else -> Next.js frontend
+	handle {
+		reverse_proxy web:3000
+	}
+}

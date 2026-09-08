@@ -1,0 +1,335 @@
+// Prisma schema - Phase 0/1 subset (identity + profile/blog core).
+// Later phases add Post, Reel, Business, Product, Event, NewsItem, Poll,
+// DirectMessage, AdCampaign, Donation, CharityCampaign, Badge, etc. as
+// described in the architecture plan - intentionally not modeled yet so this
+// migration stays reviewable.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  resident
+  moderator
+  admin
+}
+
+model User {
+  id           String   @id @default(cuid())
+  phone        String   @unique // normalized +989XXXXXXXXX
+  displayName  String
+  neighborhood String?
+  birthdate    DateTime // used only for the 16+ age gate, never displayed
+  role         UserRole @default(resident)
+  suspended    Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  sessions Session[]
+  profile  Profile?
+  media    Media[]
+
+  posts    Post[]
+  reels    Reel[]
+  comments Comment[]
+  likes    Like[]
+
+  following Follow[] @relation("FollowerEdges")
+  followers Follow[] @relation("FollowingEdges")
+
+  conversationParticipants ConversationParticipant[]
+  directMessages           DirectMessage[]
+
+  @@index([neighborhood])
+}
+
+model PhoneVerification {
+  id         String    @id @default(cuid())
+  phone      String
+  codeHash   String
+  expiresAt  DateTime
+  attempts   Int       @default(0)
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([phone, createdAt])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  userAgent String?
+  ipHash    String?
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+enum ProfileTemplate {
+  classic
+  cardStack
+  magazine
+}
+
+model Profile {
+  id              String          @id @default(cuid())
+  userId          String          @unique
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  handle          String          @unique // used in /u/[handle]
+  template        ProfileTemplate @default(classic)
+  accentColor     String          @default("#2f6f4f")
+  coverMediaId    String?
+  avatarMediaId   String?
+  instagramHandle String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  pages         ProfilePage[]
+  careerEntries CareerEntry[]
+
+  @@index([handle])
+}
+
+enum PageKind {
+  about
+  achievements
+  career
+  interests
+  custom
+}
+
+model ProfilePage {
+  id        String   @id @default(cuid())
+  profileId String
+  profile   Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  kind      PageKind
+  title     String
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  blocks ProfileBlock[]
+
+  @@index([profileId, order])
+}
+
+enum BlockType {
+  heading
+  text
+  image
+  gallery
+  video
+  quote
+  link
+  achievement
+  timelineItem
+  instagramEmbed
+  divider
+}
+
+model ProfileBlock {
+  id        String      @id @default(cuid())
+  pageId    String
+  page      ProfilePage @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  type      BlockType
+  content   Json
+  order     Int         @default(0)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  @@index([pageId, order])
+}
+
+model CareerEntry {
+  id           String    @id @default(cuid())
+  profileId    String
+  profile      Profile   @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  organization String
+  title        String
+  startDate    DateTime
+  endDate      DateTime?
+  current      Boolean   @default(false)
+  description  String?
+  createdAt    DateTime  @default(now())
+
+  // Enables "who holds position X at organization Y" style search (req 21).
+  @@index([organization, title])
+}
+
+enum MediaKind {
+  image
+  video
+}
+
+enum ModerationStatus {
+  pending
+  auto_approved
+  auto_rejected
+  needs_human_review
+  approved
+  rejected
+}
+
+model Media {
+  id               String           @id @default(cuid())
+  ownerId          String
+  owner            User             @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  kind             MediaKind
+  originalFilename String
+  storageKey       String // path under MEDIA_UPLOAD_DIR, never served directly
+  processedKey     String? // path under MEDIA_PROCESSED_DIR, the only thing ever served
+  mimeType         String
+  byteSize         Int
+  widthPx          Int?
+  heightPx         Int?
+  durationSec      Int?
+  moderationStatus ModerationStatus @default(pending)
+  moderationNote   String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  @@index([ownerId])
+  @@index([moderationStatus])
+}
+
+// ---------------------------------------------------------------------------
+// Phase 2: social core - short posts, reels, comments/likes, follows, DMs.
+// ---------------------------------------------------------------------------
+
+model Post {
+  id               String           @id @default(cuid())
+  authorId         String
+  author           User             @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  text             String
+  moderationStatus ModerationStatus @default(pending)
+  moderationNote   String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  media    PostMedia[]
+  likes    Like[]
+  comments Comment[]
+
+  @@index([authorId, createdAt])
+  @@index([moderationStatus, createdAt])
+}
+
+// Images only (up to 4) - video content belongs in Reels, keeping the two
+// tabs meaningfully different rather than two copies of the same feed.
+model PostMedia {
+  id      String @id @default(cuid())
+  postId  String
+  post    Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  mediaId String
+  order   Int    @default(0)
+
+  @@index([postId, order])
+}
+
+model Reel {
+  id               String           @id @default(cuid())
+  authorId         String
+  author           User             @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  mediaId          String
+  caption          String?
+  moderationStatus ModerationStatus @default(pending)
+  moderationNote   String?
+  viewCount        Int              @default(0)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  likes    Like[]
+  comments Comment[]
+
+  @@index([authorId, createdAt])
+  @@index([moderationStatus, createdAt])
+}
+
+// Flat comments (no nested threads) on either a Post or a Reel - exactly one
+// of postId/reelId is set, enforced at the service layer.
+model Comment {
+  id        String   @id @default(cuid())
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  postId    String?
+  post      Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  reelId    String?
+  reel      Reel?    @relation(fields: [reelId], references: [id], onDelete: Cascade)
+  text      String
+  createdAt DateTime @default(now())
+
+  @@index([postId, createdAt])
+  @@index([reelId, createdAt])
+}
+
+// A single "like" reaction (not multi-emoji) - simple, sufficient signal for
+// the feed ranking algorithm without turning likes into a metric to farm.
+model Like {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  postId    String?
+  post      Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  reelId    String?
+  reel      Reel?    @relation(fields: [reelId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, postId])
+  @@unique([userId, reelId])
+  @@index([postId])
+  @@index([reelId])
+}
+
+model Follow {
+  id          String   @id @default(cuid())
+  followerId  String
+  follower    User     @relation("FollowerEdges", fields: [followerId], references: [id], onDelete: Cascade)
+  followingId String
+  following   User     @relation("FollowingEdges", fields: [followingId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+
+  @@unique([followerId, followingId])
+  @@index([followingId])
+}
+
+model Conversation {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  participants ConversationParticipant[]
+  messages     DirectMessage[]
+}
+
+model ConversationParticipant {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Unread-count uses this rather than per-message read receipts - simpler,
+  // and keeps DMs from turning into a "seen at 10:42" anxiety machine.
+  lastReadAt     DateTime?
+
+  @@unique([conversationId, userId])
+  @@index([userId])
+}
+
+model DirectMessage {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId       String
+  sender         User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  text           String
+  createdAt      DateTime     @default(now())
+
+  @@index([conversationId, createdAt])
+}
