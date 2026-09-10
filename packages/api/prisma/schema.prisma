@@ -34,10 +34,11 @@ model User {
   profile  Profile?
   media    Media[]
 
-  posts    Post[]
-  reels    Reel[]
-  comments Comment[]
-  likes    Like[]
+  posts      Post[]
+  reels      Reel[]
+  comments   Comment[]
+  likes      Like[]
+  businesses Business[]
 
   following Follow[] @relation("FollowerEdges")
   followers Follow[] @relation("FollowingEdges")
@@ -332,4 +333,101 @@ model DirectMessage {
   createdAt      DateTime     @default(now())
 
   @@index([conversationId, createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Phase 3: business directory - dedicated, SEO-visible surface (req 3, 18).
+// Deliberately its own model tree (not the User/Profile one) even though the
+// page/block shape is identical - keeps the already-verified personal
+// profile ownership logic completely untouched, and a business is owned
+// directly (no separate "profile" indirection layer needed the way a User
+// has one for customization).
+// ---------------------------------------------------------------------------
+
+model Business {
+  id               String           @id @default(cuid())
+  ownerId          String
+  owner            User             @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  slug             String           @unique // used in /biz/[slug]
+  name             String
+  category         String
+  neighborhood     String?
+  address          String?
+  phone            String?
+  summary          String? // one-line pitch shown on directory/search cards
+  coverMediaId     String?
+  logoMediaId      String?
+  instagramHandle  String?
+  moderationStatus ModerationStatus @default(pending)
+  moderationNote   String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  pages    BusinessPage[]
+  products Product[]
+
+  @@index([ownerId])
+  @@index([category])
+  @@index([neighborhood])
+  @@index([moderationStatus])
+}
+
+model BusinessPage {
+  id         String   @id @default(cuid())
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  title      String
+  order      Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  blocks BusinessBlock[]
+
+  @@index([businessId, order])
+}
+
+// Reuses the same BlockType enum as ProfileBlock - one editor UI, one set of
+// block-content schemas, for both a person's page and a business's page.
+model BusinessBlock {
+  id        String       @id @default(cuid())
+  pageId    String
+  page      BusinessPage @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  type      BlockType
+  content   Json
+  order     Int          @default(0)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@index([pageId, order])
+}
+
+model Product {
+  id                 String           @id @default(cuid())
+  businessId         String
+  business           Business         @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  name               String
+  description        String?
+  priceToman         Int? // null = "contact for price"
+  isOffer            Boolean          @default(false)
+  originalPriceToman Int? // shown struck-through when isOffer
+  active             Boolean          @default(true) // owner can hide without deleting
+  moderationStatus   ModerationStatus @default(pending)
+  moderationNote     String?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  media ProductMedia[]
+
+  @@index([businessId, active])
+  @@index([moderationStatus])
+}
+
+model ProductMedia {
+  id        String  @id @default(cuid())
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  mediaId   String
+  order     Int     @default(0)
+
+  @@index([productId, order])
 }

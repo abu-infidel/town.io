@@ -1,4 +1,4 @@
-import type { BlockType, PageKind, ProfileTemplate } from "@mahalle/shared";
+import type { BlockType, BusinessCategory, PageKind, ProfileTemplate } from "@mahalle/shared";
 
 export interface ProfileBlockDto {
   id: string;
@@ -107,4 +107,103 @@ export interface DirectMessageDto {
   senderId: string;
   text: string;
   createdAt: string;
+}
+
+// ---------------------------------------------------------------------------
+// Phase 3: business directory
+// ---------------------------------------------------------------------------
+
+// Structurally identical to ProfileBlockDto (same BlockType/content shape) -
+// aliased so business-editor code reads as its own domain.
+export type BusinessBlockDto = ProfileBlockDto;
+
+export interface BusinessPageDto {
+  id: string;
+  title: string;
+  order: number;
+  blocks: BusinessBlockDto[];
+}
+
+export interface ProductMediaRow {
+  id: string;
+  mediaId: string;
+  order: number;
+}
+
+export interface OwnedProductDto {
+  id: string;
+  name: string;
+  description: string | null;
+  priceToman: number | null;
+  isOffer: boolean;
+  originalPriceToman: number | null;
+  active: boolean;
+  moderationStatus: string;
+  media: ProductMediaRow[];
+}
+
+export interface OwnedBusinessDto {
+  id: string;
+  ownerId: string;
+  slug: string;
+  name: string;
+  category: BusinessCategory;
+  neighborhood: string | null;
+  address: string | null;
+  phone: string | null;
+  summary: string | null;
+  coverMediaId: string | null;
+  logoMediaId: string | null;
+  instagramHandle: string | null;
+  moderationStatus: string;
+  pages: BusinessPageDto[];
+  products: OwnedProductDto[];
+}
+
+export interface BusinessListItemDto {
+  id: string;
+  slug: string;
+  name: string;
+  category: BusinessCategory;
+  neighborhood: string | null;
+  moderationStatus: string;
+}
+
+export interface PublicProductDto {
+  id: string;
+  name: string;
+  description: string | null;
+  priceToman: number | null;
+  isOffer: boolean;
+  originalPriceToman: number | null;
+  media: string[];
+}
+
+export interface PublicBusinessDto {
+  id: string;
+  slug: string;
+  name: string;
+  category: BusinessCategory;
+  neighborhood: string | null;
+  address: string | null;
+  phone: string | null;
+  summary: string | null;
+  instagramHandle: string | null;
+  coverUrl: string | null;
+  logoUrl: string | null;
+  pages: BusinessPageDto[];
+  products: PublicProductDto[];
+}
+
+export interface DirectoryBusinessDto {
+  slug: string;
+  name: string;
+  category: BusinessCategory;
+  neighborhood: string | null;
+  summary: string | null;
+  logoUrl: string | null;
+}
+
+export interface PublicProductDetailDto extends PublicProductDto {
+  business: { slug: string; name: string };
 }

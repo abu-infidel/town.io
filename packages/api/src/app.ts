@@ -13,6 +13,8 @@ import { postsRouter } from "./modules/posts/routes";
 import { reelsRouter } from "./modules/reels/routes";
 import { followsRouter } from "./modules/follows/routes";
 import { dmRouter } from "./modules/dm/routes";
+import { businessRouter } from "./modules/business/routes";
+import { productsRouter } from "./modules/products/routes";
 
 export function createApp() {
   const app = express();
@@ -56,6 +58,8 @@ export function createApp() {
   app.use("/reels", reelsRouter);
   app.use("/follows", followsRouter);
   app.use("/dm", dmRouter);
+  app.use("/business", businessRouter);
+  app.use("/products", productsRouter);
 
   app.use(notFoundHandler);
   app.use(errorHandler);

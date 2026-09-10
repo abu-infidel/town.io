@@ -19,25 +19,35 @@ export async function SiteNav() {
           محله
         </Link>
 
-        {user && (
-          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-            <Link href="/feed" className="btn btn-secondary" style={{ padding: "8px 12px" }}>
-              🏠 خونه
-            </Link>
-            <Link href="/reels" className="btn btn-secondary" style={{ padding: "8px 12px" }}>
-              🎬 ریلز
-            </Link>
-            <Link href="/messages" className="btn btn-secondary" style={{ padding: "8px 12px" }}>
-              ✉️ پیام‌ها
-            </Link>
-          </div>
-        )}
+        <div style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap" }}>
+          {user && (
+            <>
+              <Link href="/feed" className="btn btn-secondary" style={{ padding: "8px 12px" }}>
+                🏠 خونه
+              </Link>
+              <Link href="/reels" className="btn btn-secondary" style={{ padding: "8px 12px" }}>
+                🎬 ریلز
+              </Link>
+              <Link href="/messages" className="btn btn-secondary" style={{ padding: "8px 12px" }}>
+                ✉️ پیام‌ها
+              </Link>
+            </>
+          )}
+          <Link href="/businesses" className="btn btn-secondary" style={{ padding: "8px 12px" }}>
+            🏪 کسب‌وکارها
+          </Link>
+        </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           {user ? (
-            <Link href="/profile" className="btn btn-secondary">
-              صفحه من
-            </Link>
+            <>
+              <Link href="/business" className="btn btn-secondary">
+                کسب‌وکار من
+              </Link>
+              <Link href="/profile" className="btn btn-secondary">
+                صفحه من
+              </Link>
+            </>
           ) : (
             <Link href="/login" className="btn btn-primary">
               ورود / ثبت‌نام

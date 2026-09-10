@@ -12,7 +12,11 @@ const AI_TRAINING_BOTS = ["GPTBot", "CCBot", "ClaudeBot", "anthropic-ai", "Googl
 export default function robots(): MetadataRoute.Robots {
   return {
     rules: [
-      { userAgent: "*", allow: ["/", "/u/"], disallow: ["/profile", "/login", "/api/"] },
+      // "/businesses" (the public directory) is a longer/more specific match
+      // than the "/business" disallow below, so it wins per standard
+      // robots.txt precedence - the owner-only dashboard at /business and
+      // /business/:id stays blocked while the directory itself is crawlable.
+      { userAgent: "*", allow: ["/", "/u/", "/businesses", "/biz/"], disallow: ["/profile", "/business", "/login", "/api/"] },
       ...AI_TRAINING_BOTS.map((agent) => ({ userAgent: agent, disallow: "/" })),
     ],
   };

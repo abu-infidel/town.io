@@ -16,6 +16,15 @@ export async function serverFetch(path: string, init?: RequestInit) {
   });
 }
 
+/**
+ * Cookie-free variant for genuinely public endpoints, usable from contexts
+ * where next/headers' cookies() is unavailable (sitemap.ts/robots.ts run
+ * outside a request scope, not just outside a page/layout).
+ */
+export async function publicFetch(path: string, init?: RequestInit) {
+  return fetch(`${API_INTERNAL_URL}${path}`, { ...init, cache: "no-store" });
+}
+
 export async function getCurrentUser() {
   try {
     const res = await serverFetch("/auth/me");

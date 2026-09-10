@@ -200,6 +200,68 @@ export const sendMessageSchema = z.object({
   text: z.string().min(1, "پیام نمی‌تواند خالی باشد").max(2000, "حداکثر ۲۰۰۰ نویسه"),
 });
 
+// ---------------------------------------------------------------------------
+// Phase 3: business directory (dedicated tab, SEO-visible - req 3, 18)
+// ---------------------------------------------------------------------------
+
+const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+export const businessSlugSchema = z
+  .string()
+  .min(3, "حداقل ۳ نویسه")
+  .max(40, "حداکثر ۴۰ نویسه")
+  .regex(SLUG_RE, "فقط حروف انگلیسی کوچک، عدد و خط تیره (مثل: nanvaei-sar-mahalle)");
+
+export const BUSINESS_CATEGORIES = ["food", "retail", "services", "health", "education", "beauty", "auto", "home", "other"] as const;
+export type BusinessCategory = (typeof BUSINESS_CATEGORIES)[number];
+
+export const BUSINESS_CATEGORY_LABELS_FA: Record<BusinessCategory, string> = {
+  food: "خوراکی و رستوران",
+  retail: "فروشگاه",
+  services: "خدمات",
+  health: "سلامت و درمان",
+  education: "آموزش",
+  beauty: "زیبایی و آرایشی",
+  auto: "خودرو",
+  home: "خانه و ساختمان",
+  other: "سایر",
+};
+
+export const createBusinessSchema = z.object({
+  slug: businessSlugSchema,
+  name: z.string().min(2, "حداقل ۲ نویسه").max(80, "حداکثر ۸۰ نویسه"),
+  category: z.enum(BUSINESS_CATEGORIES),
+  neighborhood: z.string().max(80).optional(),
+  address: z.string().max(300).optional(),
+  phone: z.string().max(20).optional(),
+  summary: z.string().max(200).optional(),
+});
+
+export const updateBusinessSchema = z.object({
+  name: z.string().min(2).max(80).optional(),
+  category: z.enum(BUSINESS_CATEGORIES).optional(),
+  neighborhood: z.string().max(80).optional(),
+  address: z.string().max(300).optional(),
+  phone: z.string().max(20).optional(),
+  summary: z.string().max(200).optional(),
+  instagramHandle: z.string().max(60).optional(),
+  coverMediaId: z.string().optional(),
+  logoMediaId: z.string().optional(),
+});
+
+export const createProductSchema = z.object({
+  name: z.string().min(1, "نام کالا لازم است").max(120),
+  description: z.string().max(2000).optional(),
+  priceToman: z.number().int().min(0).optional(),
+  isOffer: z.boolean().optional(),
+  originalPriceToman: z.number().int().min(0).optional(),
+  mediaIds: z.array(z.string()).max(6, "حداکثر ۶ تصویر").optional(),
+});
+
+export const updateProductSchema = createProductSchema.partial().extend({
+  active: z.boolean().optional(),
+});
+
 // A page never returns more than this many rows, and pagination moves via an
 // opaque cursor rather than a raw offset/id - deliberately unfriendly to bulk
 // scraping (see architecture plan req 14) without punishing normal browsing.
