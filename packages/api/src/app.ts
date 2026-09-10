@@ -15,6 +15,9 @@ import { followsRouter } from "./modules/follows/routes";
 import { dmRouter } from "./modules/dm/routes";
 import { businessRouter } from "./modules/business/routes";
 import { productsRouter } from "./modules/products/routes";
+import { newsRouter } from "./modules/news/routes";
+import { eventsRouter } from "./modules/events/routes";
+import { pollsRouter } from "./modules/polls/routes";
 
 export function createApp() {
   const app = express();
@@ -60,6 +63,9 @@ export function createApp() {
   app.use("/dm", dmRouter);
   app.use("/business", businessRouter);
   app.use("/products", productsRouter);
+  app.use("/news", newsRouter);
+  app.use("/events", eventsRouter);
+  app.use("/polls", pollsRouter);
 
   app.use(notFoundHandler);
   app.use(errorHandler);

@@ -271,3 +271,38 @@ export const paginationSchema = z.object({
   cursor: z.string().optional(),
   limit: z.coerce.number().int().min(1).max(MAX_PAGE_SIZE).optional(),
 });
+
+// ---------------------------------------------------------------------------
+// Phase 4: civic features - news, events, polls (req 6, 7, 23)
+// ---------------------------------------------------------------------------
+
+export const createNewsItemSchema = z.object({
+  title: z.string().min(3, "حداقل ۳ نویسه").max(150, "حداکثر ۱۵۰ نویسه"),
+  body: z.string().min(1, "متن نمی‌تواند خالی باشد").max(5000, "حداکثر ۵۰۰۰ نویسه"),
+  coverMediaId: z.string().optional(),
+});
+
+export const createEventSchema = z.object({
+  title: z.string().min(3, "حداقل ۳ نویسه").max(150, "حداکثر ۱۵۰ نویسه"),
+  description: z.string().min(1, "توضیحات لازم است").max(5000, "حداکثر ۵۰۰۰ نویسه"),
+  location: z.string().max(200).optional(),
+  startAt: z.string().datetime({ offset: true }).or(z.string().min(1)),
+  endAt: z.string().optional(),
+  coverMediaId: z.string().optional(),
+});
+
+export const createEventPostSchema = z.object({
+  text: z.string().min(1, "متن نمی‌تواند خالی باشد").max(500, "حداکثر ۵۰۰ نویسه"),
+  mediaIds: z.array(z.string()).max(4, "حداکثر ۴ تصویر").optional(),
+});
+
+export const createPollSchema = z.object({
+  question: z.string().min(3, "حداقل ۳ نویسه").max(200, "حداکثر ۲۰۰ نویسه"),
+  description: z.string().max(2000).optional(),
+  options: z.array(z.string().min(1).max(120)).min(2, "حداقل ۲ گزینه لازم است").max(10, "حداکثر ۱۰ گزینه"),
+  closesAt: z.string().optional(),
+});
+
+export const castVoteSchema = z.object({
+  optionId: z.string(),
+});

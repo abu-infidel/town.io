@@ -8,7 +8,7 @@ export class CommentError extends Error {
   }
 }
 
-export type CommentTarget = { postId: string } | { reelId: string };
+export type CommentTarget = { postId: string } | { reelId: string } | { eventPostId: string };
 
 export async function addComment(userId: string, target: CommentTarget, text: string) {
   return prisma.comment.create({
@@ -59,4 +59,14 @@ export async function reelCommentCounts(reelIds: string[]): Promise<Map<string, 
     _count: { _all: true },
   });
   return new Map(grouped.filter((r) => r.reelId).map((r) => [r.reelId as string, r._count._all]));
+}
+
+export async function eventPostCommentCounts(eventPostIds: string[]): Promise<Map<string, number>> {
+  if (eventPostIds.length === 0) return new Map();
+  const grouped = await prisma.comment.groupBy({
+    by: ["eventPostId"],
+    where: { eventPostId: { in: eventPostIds } },
+    _count: { _all: true },
+  });
+  return new Map(grouped.filter((r) => r.eventPostId).map((r) => [r.eventPostId as string, r._count._all]));
 }

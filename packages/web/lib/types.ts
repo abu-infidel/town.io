@@ -207,3 +207,70 @@ export interface DirectoryBusinessDto {
 export interface PublicProductDetailDto extends PublicProductDto {
   business: { slug: string; name: string };
 }
+
+// ---------------------------------------------------------------------------
+// Phase 4: civic features - news, events, polls
+// ---------------------------------------------------------------------------
+
+export interface NewsItemDto {
+  id: string;
+  title: string;
+  body: string;
+  createdAt: string;
+  author: { id: string; displayName: string };
+  coverUrl: string | null;
+}
+
+export interface EventListItemDto {
+  id: string;
+  title: string;
+  description: string;
+  location: string | null;
+  startAt: string;
+  endAt: string | null;
+  creator: { id: string; displayName: string };
+  coverUrl: string | null;
+  rsvpCount: number;
+}
+
+export interface EventDetailDto extends EventListItemDto {
+  viewerGoing: boolean;
+}
+
+export interface EventPostDto {
+  id: string;
+  text: string;
+  createdAt: string;
+  author: { id: string; displayName: string };
+  media: string[];
+  likeCount: number;
+  commentCount: number;
+  likedByViewer: boolean;
+}
+
+export interface PollOptionDto {
+  id: string;
+  text: string;
+  voteCount: number | null;
+}
+
+export interface PollDto {
+  id: string;
+  question: string;
+  description: string | null;
+  closesAt: string | null;
+  closed: boolean;
+  createdAt: string;
+  viewerVotedOptionId: string | null;
+  totalVotes: number | null;
+  options: PollOptionDto[];
+}
+
+export interface PublicPollResultsDto {
+  id: string;
+  question: string;
+  description: string | null;
+  closed: boolean;
+  totalVotes: number;
+  options: { text: string; voteCount: number }[];
+}

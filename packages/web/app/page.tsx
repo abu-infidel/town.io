@@ -1,13 +1,7 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/server-api";
 
-const UPCOMING = [
-  { emoji: "🏪", title: "کسب‌وکارها", desc: "مغازه‌ها و خدمات محلی، با محصولات و تخفیف‌هاشون" },
-  { emoji: "📰", title: "اخبار شهر", desc: "بدون از دست دادن هیچ خبری از شهر خودت" },
-  { emoji: "🎉", title: "رویدادها", desc: "توی رویدادهای شهر شرکت کن و لحظه‌هاتو نشون بده" },
-  { emoji: "🗳️", title: "نظرسنجی‌های مدنی", desc: "صدای اهالی واقعی شهر برای مسئولین" },
-  { emoji: "🏅", title: "نشان‌های افتخار", desc: "برای کمک به محله، دیده و قدردانی شو" },
-];
+const UPCOMING = [{ emoji: "🏅", title: "نشان‌های افتخار", desc: "برای کمک به محله، دیده و قدردانی شو" }];
 
 export default async function HomePage() {
   const user = await getCurrentUser();
@@ -37,6 +31,18 @@ export default async function HomePage() {
             </Link>
             <Link href="/reels" className="btn btn-secondary" style={{ fontSize: 16, padding: "14px 28px" }}>
               🎬 ریلز
+            </Link>
+            <Link href="/businesses" className="btn btn-secondary" style={{ fontSize: 16, padding: "14px 28px" }}>
+              🏪 کسب‌وکارها
+            </Link>
+            <Link href="/news" className="btn btn-secondary" style={{ fontSize: 16, padding: "14px 28px" }}>
+              📰 اخبار
+            </Link>
+            <Link href="/events" className="btn btn-secondary" style={{ fontSize: 16, padding: "14px 28px" }}>
+              🎉 رویدادها
+            </Link>
+            <Link href="/polls" className="btn btn-secondary" style={{ fontSize: 16, padding: "14px 28px" }}>
+              🗳️ نظرسنجی‌ها
             </Link>
             <Link href="/profile" className="btn btn-secondary" style={{ fontSize: 16, padding: "14px 28px" }}>
               شخصی‌سازی صفحه‌ام

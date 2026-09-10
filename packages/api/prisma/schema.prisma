@@ -40,6 +40,13 @@ model User {
   likes      Like[]
   businesses Business[]
 
+  newsItems  NewsItem[]
+  events     Event[]
+  eventRsvps EventRsvp[]
+  eventPosts EventPost[]
+  polls      Poll[]
+  pollVotes  PollVote[]
+
   following Follow[] @relation("FollowerEdges")
   followers Follow[] @relation("FollowingEdges")
 
@@ -254,39 +261,47 @@ model Reel {
   @@index([moderationStatus, createdAt])
 }
 
-// Flat comments (no nested threads) on either a Post or a Reel - exactly one
-// of postId/reelId is set, enforced at the service layer.
+// Flat comments (no nested threads) on a Post, a Reel, or an EventPost -
+// exactly one of postId/reelId/eventPostId is set, enforced at the service
+// layer.
 model Comment {
-  id        String   @id @default(cuid())
-  authorId  String
-  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  postId    String?
-  post      Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
-  reelId    String?
-  reel      Reel?    @relation(fields: [reelId], references: [id], onDelete: Cascade)
-  text      String
-  createdAt DateTime @default(now())
+  id          String     @id @default(cuid())
+  authorId    String
+  author      User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  postId      String?
+  post        Post?      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  reelId      String?
+  reel        Reel?      @relation(fields: [reelId], references: [id], onDelete: Cascade)
+  eventPostId String?
+  eventPost   EventPost? @relation(fields: [eventPostId], references: [id], onDelete: Cascade)
+  text        String
+  createdAt   DateTime   @default(now())
 
   @@index([postId, createdAt])
   @@index([reelId, createdAt])
+  @@index([eventPostId, createdAt])
 }
 
 // A single "like" reaction (not multi-emoji) - simple, sufficient signal for
 // the feed ranking algorithm without turning likes into a metric to farm.
 model Like {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  postId    String?
-  post      Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
-  reelId    String?
-  reel      Reel?    @relation(fields: [reelId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
+  id          String     @id @default(cuid())
+  userId      String
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  postId      String?
+  post        Post?      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  reelId      String?
+  reel        Reel?      @relation(fields: [reelId], references: [id], onDelete: Cascade)
+  eventPostId String?
+  eventPost   EventPost? @relation(fields: [eventPostId], references: [id], onDelete: Cascade)
+  createdAt   DateTime   @default(now())
 
   @@unique([userId, postId])
   @@unique([userId, reelId])
+  @@unique([userId, eventPostId])
   @@index([postId])
   @@index([reelId])
+  @@index([eventPostId])
 }
 
 model Follow {
@@ -430,4 +445,143 @@ model ProductMedia {
   order     Int     @default(0)
 
   @@index([productId, order])
+}
+
+// ---------------------------------------------------------------------------
+// Phase 4: civic features - news, events (with per-event mini-feeds/RSVP),
+// and polls (req 6, 7, 23).
+// ---------------------------------------------------------------------------
+
+// Open submission (any resident, moderation-gated) rather than restricted to
+// an admin role that doesn't exist yet - keeps this consistent with every
+// other content type in the app instead of inventing new role plumbing.
+model NewsItem {
+  id               String           @id @default(cuid())
+  authorId         String
+  author           User             @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  title            String
+  body             String
+  coverMediaId     String?
+  moderationStatus ModerationStatus @default(pending)
+  moderationNote   String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  @@index([moderationStatus, createdAt])
+  @@index([authorId])
+}
+
+model Event {
+  id               String           @id @default(cuid())
+  creatorId        String
+  creator          User             @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  title            String
+  description      String
+  location         String?
+  startAt          DateTime
+  endAt            DateTime?
+  coverMediaId     String?
+  moderationStatus ModerationStatus @default(pending)
+  moderationNote   String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  rsvps EventRsvp[]
+  posts EventPost[]
+
+  @@index([startAt])
+  @@index([moderationStatus, startAt])
+}
+
+model EventRsvp {
+  id        String   @id @default(cuid())
+  eventId   String
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([eventId, userId])
+  @@index([eventId])
+}
+
+// "Show their angle of the event" (req 7) - a mini-feed scoped to one event,
+// deliberately its own model rather than Post+eventId so the general
+// Twitter-like feed never has to filter event content out of itself.
+model EventPost {
+  id               String           @id @default(cuid())
+  eventId          String
+  event            Event            @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  authorId         String
+  author           User             @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  text             String
+  moderationStatus ModerationStatus @default(pending)
+  moderationNote   String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  media    EventPostMedia[]
+  likes    Like[]
+  comments Comment[]
+
+  @@index([eventId, createdAt])
+  @@index([moderationStatus, createdAt])
+}
+
+model EventPostMedia {
+  id          String    @id @default(cuid())
+  eventPostId String
+  eventPost   EventPost @relation(fields: [eventPostId], references: [id], onDelete: Cascade)
+  mediaId     String
+  order       Int       @default(0)
+
+  @@index([eventPostId, order])
+}
+
+// Every account is already phone-verified at registration (req 23's
+// "verified resident" requirement is met by auth alone, not a second gate).
+// Results stay aggregate-only everywhere (never who-voted-for-what) - a
+// resident's stance on a town issue is exactly the kind of thing req 12's
+// device/user-safety principle should extend to.
+model Poll {
+  id               String           @id @default(cuid())
+  creatorId        String
+  creator          User             @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  question         String
+  description      String?
+  closesAt         DateTime?
+  moderationStatus ModerationStatus @default(pending)
+  moderationNote   String?
+  createdAt        DateTime         @default(now())
+
+  options PollOption[]
+  votes   PollVote[]
+
+  @@index([moderationStatus, createdAt])
+}
+
+model PollOption {
+  id     String @id @default(cuid())
+  pollId String
+  poll   Poll   @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  text   String
+  order  Int    @default(0)
+
+  votes PollVote[]
+
+  @@index([pollId, order])
+}
+
+model PollVote {
+  id        String     @id @default(cuid())
+  pollId    String
+  poll      Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  optionId  String
+  option    PollOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime   @default(now())
+
+  @@unique([pollId, userId])
+  @@index([optionId])
 }
